@@ -44,7 +44,7 @@ pub type ExpireCondition {
 
 pub fn start(host: String, port: Int, options: List(StartOption)) {
   let #(timeout, options) = case
-    list.pop_map(options, fn(item) {
+    pop_map(options, fn(item) {
       case item {
         Timeout(timeout) -> Ok(timeout)
         _ -> Error(Nil)
@@ -56,7 +56,7 @@ pub fn start(host: String, port: Int, options: List(StartOption)) {
   }
 
   let #(pool_size, options) = case
-    list.pop_map(options, fn(item) {
+    pop_map(options, fn(item) {
       case item {
         PoolSize(pool_size) -> Ok(pool_size)
         _ -> Error(Nil)
@@ -723,6 +723,32 @@ pub fn subscribe_to_patterns(
       }
 
     _ -> False
+  }
+}
+
+fn pop_map(
+  options: List(a),
+  f: fn(a) -> Result(b, Nil),
+) -> Result(#(b, List(a)), Nil) {
+  do_pop_map(f, [], options)
+}
+
+fn do_pop_map(
+  f: fn(a) -> Result(b, Nil),
+  acc: List(a),
+  remaining: List(a),
+) -> Result(#(b, List(a)), Nil) {
+  case remaining {
+    [] -> Error(Nil)
+    [head, ..tail] -> {
+      case f(head) {
+        Ok(mapped_value) -> {
+          let final_list = list.append(list.reverse(acc), tail)
+          Ok(#(mapped_value, final_list))
+        }
+        Error(Nil) -> do_pop_map(f, [head, ..acc], tail)
+      }
+    }
   }
 }
 
